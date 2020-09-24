@@ -63,7 +63,7 @@ type fdDir struct {
 	produceSymlink bool
 }
 
-// IterDirents implements kernfs.inodeDynamicLookup.IterDirents.
+// IterDirents implements kernfs.inodeLookup.IterDirents.
 func (i *fdDir) IterDirents(ctx context.Context, cb vfs.IterDirentsCallback, offset, relOffset int64) (int64, error) {
 	var fds []int32
 	i.task.WithMuLocked(func(t *kernel.Task) {
@@ -113,12 +113,13 @@ type fdDirInode struct {
 	kernfs.InodeAttrs
 	kernfs.InodeDirectoryNoNewChildren
 	kernfs.InodeNotSymlink
+	kernfs.InodeTemporary
 	kernfs.OrderedChildren
 }
 
 var _ kernfs.Inode = (*fdDirInode)(nil)
 
-func (fs *filesystem) newFDDirInode(task *kernel.Task) *kernfs.Dentry {
+func (fs *filesystem) newFDDirInode(task *kernel.Task) kernfs.Inode {
 	inode := &fdDirInode{
 		fdDir: fdDir{
 			fs:             fs,
@@ -128,16 +129,20 @@ func (fs *filesystem) newFDDirInode(task *kernel.Task) *kernfs.Dentry {
 	}
 	inode.InodeAttrs.Init(task.Credentials(), linux.UNNAMED_MAJOR, fs.devMinor, fs.NextIno(), linux.ModeDirectory|0555)
 	inode.EnableLeakCheck()
-
-	dentry := &kernfs.Dentry{}
-	dentry.Init(inode)
+	// TODO(gvisor.dev/issue/1193): Remove OrderedChildren, it is not used.
 	inode.OrderedChildren.Init(kernfs.OrderedChildrenOptions{})
-
-	return dentry
+	return inode
 }
 
-// Lookup implements kernfs.inodeDynamicLookup.Lookup.
-func (i *fdDirInode) Lookup(ctx context.Context, name string) (*kernfs.Dentry, error) {
+// IterDirents implements kernfs.inodeLookup.IterDirents.
+// TODO(gvisor.dev/issue/1193): Remove this after OrderedChildren is removed
+// as ambiguity will be resolved.
+func (i *fdDirInode) IterDirents(ctx context.Context, cb vfs.IterDirentsCallback, offset, relOffset int64) (int64, error) {
+	return i.fdDir.IterDirents(ctx, cb, offset, relOffset)
+}
+
+// Lookup implements kernfs.inodeLookup.Lookup.
+func (i *fdDirInode) Lookup(ctx context.Context, name string) (kernfs.Inode, error) {
 	fdInt, err := strconv.ParseInt(name, 10, 32)
 	if err != nil {
 		return nil, syserror.ENOENT
@@ -183,8 +188,8 @@ func (i *fdDirInode) CheckPermissions(ctx context.Context, creds *auth.Credentia
 }
 
 // DecRef implements kernfs.Inode.DecRef.
-func (i *fdDirInode) DecRef(context.Context) {
-	i.fdDirInodeRefs.DecRef(i.Destroy)
+func (i *fdDirInode) DecRef(ctx context.Context) {
+	i.fdDirInodeRefs.DecRef(func() { i.Destroy(ctx) })
 }
 
 // fdSymlink is an symlink for the /proc/[pid]/fd/[fd] file.
@@ -202,16 +207,13 @@ type fdSymlink struct {
 
 var _ kernfs.Inode = (*fdSymlink)(nil)
 
-func (fs *filesystem) newFDSymlink(task *kernel.Task, fd int32, ino uint64) *kernfs.Dentry {
+func (fs *filesystem) newFDSymlink(task *kernel.Task, fd int32, ino uint64) kernfs.Inode {
 	inode := &fdSymlink{
 		task: task,
 		fd:   fd,
 	}
 	inode.Init(task.Credentials(), linux.UNNAMED_MAJOR, fs.devMinor, ino, linux.ModeSymlink|0777)
-
-	d := &kernfs.Dentry{}
-	d.Init(inode)
-	return d
+	return inode
 }
 
 func (s *fdSymlink) Readlink(ctx context.Context, _ *vfs.Mount) (string, error) {
@@ -236,6 +238,11 @@ func (s *fdSymlink) Getlink(ctx context.Context, mnt *vfs.Mount) (vfs.VirtualDen
 	return vd, "", nil
 }
 
+// Valid implements kernfs.Inode.Valid.
+func (s *fdSymlink) Valid(ctx context.Context) bool {
+	return taskFDExists(ctx, s.task, s.fd)
+}
+
 // fdInfoDirInode represents the inode for /proc/[pid]/fdinfo directory.
 //
 // +stateify savable
@@ -247,12 +254,13 @@ type fdInfoDirInode struct {
 	kernfs.InodeAttrs
 	kernfs.InodeDirectoryNoNewChildren
 	kernfs.InodeNotSymlink
+	kernfs.InodeTemporary
 	kernfs.OrderedChildren
 }
 
 var _ kernfs.Inode = (*fdInfoDirInode)(nil)
 
-func (fs *filesystem) newFDInfoDirInode(task *kernel.Task) *kernfs.Dentry {
+func (fs *filesystem) newFDInfoDirInode(task *kernel.Task) kernfs.Inode {
 	inode := &fdInfoDirInode{
 		fdDir: fdDir{
 			fs:   fs,
@@ -261,16 +269,13 @@ func (fs *filesystem) newFDInfoDirInode(task *kernel.Task) *kernfs.Dentry {
 	}
 	inode.InodeAttrs.Init(task.Credentials(), linux.UNNAMED_MAJOR, fs.devMinor, fs.NextIno(), linux.ModeDirectory|0555)
 	inode.EnableLeakCheck()
-
-	dentry := &kernfs.Dentry{}
-	dentry.Init(inode)
+	// TODO(gvisor.dev/issue/1193): Remove OrderedChildren, it is not used.
 	inode.OrderedChildren.Init(kernfs.OrderedChildrenOptions{})
-
-	return dentry
+	return inode
 }
 
-// Lookup implements kernfs.inodeDynamicLookup.Lookup.
-func (i *fdInfoDirInode) Lookup(ctx context.Context, name string) (*kernfs.Dentry, error) {
+// Lookup implements kernfs.inodeLookup.Lookup.
+func (i *fdInfoDirInode) Lookup(ctx context.Context, name string) (kernfs.Inode, error) {
 	fdInt, err := strconv.ParseInt(name, 10, 32)
 	if err != nil {
 		return nil, syserror.ENOENT
@@ -283,7 +288,14 @@ func (i *fdInfoDirInode) Lookup(ctx context.Context, name string) (*kernfs.Dentr
 		task: i.task,
 		fd:   fd,
 	}
-	return i.fs.newTaskOwnedFile(i.task, i.fs.NextIno(), 0444, data), nil
+	return i.fs.newTaskOwnedInode(i.task, i.fs.NextIno(), 0444, data), nil
+}
+
+// IterDirents implements Inode.IterDirents.
+// TODO(gvisor.dev/issue/1193): Remove this after OrderedChildren is removed
+// as ambiguity will be resolved.
+func (i *fdInfoDirInode) IterDirents(ctx context.Context, cb vfs.IterDirentsCallback, offset, relOffset int64) (newOffset int64, err error) {
+	return i.fdDir.IterDirents(ctx, cb, offset, relOffset)
 }
 
 // Open implements kernfs.Inode.Open.
@@ -298,8 +310,8 @@ func (i *fdInfoDirInode) Open(ctx context.Context, rp *vfs.ResolvingPath, d *ker
 }
 
 // DecRef implements kernfs.Inode.DecRef.
-func (i *fdInfoDirInode) DecRef(context.Context) {
-	i.fdInfoDirInodeRefs.DecRef(i.Destroy)
+func (i *fdInfoDirInode) DecRef(ctx context.Context) {
+	i.fdInfoDirInodeRefs.DecRef(func() { i.Destroy(ctx) })
 }
 
 // fdInfoData implements vfs.DynamicBytesSource for /proc/[pid]/fdinfo/[fd].
@@ -327,4 +339,9 @@ func (d *fdInfoData) Generate(ctx context.Context, buf *bytes.Buffer) error {
 	flags := uint(file.StatusFlags()) | descriptorFlags.ToLinuxFileFlags()
 	fmt.Fprintf(buf, "flags:\t0%o\n", flags)
 	return nil
+}
+
+// Valid implements kernfs.Inode.Valid.
+func (d *fdInfoData) Valid(ctx context.Context) bool {
+	return taskFDExists(ctx, d.task, d.fd)
 }

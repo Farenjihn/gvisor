@@ -36,6 +36,7 @@ type subtasksInode struct {
 	kernfs.InodeAttrs
 	kernfs.InodeDirectoryNoNewChildren
 	kernfs.InodeNotSymlink
+	kernfs.InodeTemporary
 	kernfs.OrderedChildren
 	subtasksInodeRefs
 
@@ -49,7 +50,7 @@ type subtasksInode struct {
 
 var _ kernfs.Inode = (*subtasksInode)(nil)
 
-func (fs *filesystem) newSubtasks(task *kernel.Task, pidns *kernel.PIDNamespace, cgroupControllers map[string]string) *kernfs.Dentry {
+func (fs *filesystem) newSubtasks(task *kernel.Task, pidns *kernel.PIDNamespace, cgroupControllers map[string]string) kernfs.Inode {
 	subInode := &subtasksInode{
 		fs:                fs,
 		task:              task,
@@ -58,18 +59,16 @@ func (fs *filesystem) newSubtasks(task *kernel.Task, pidns *kernel.PIDNamespace,
 	}
 	// Note: credentials are overridden by taskOwnedInode.
 	subInode.InodeAttrs.Init(task.Credentials(), linux.UNNAMED_MAJOR, fs.devMinor, fs.NextIno(), linux.ModeDirectory|0555)
+	// TODO(gvisor.dev/issue/1193): Remove OrderedChildren, it is not used.
 	subInode.OrderedChildren.Init(kernfs.OrderedChildrenOptions{})
 	subInode.EnableLeakCheck()
 
 	inode := &taskOwnedInode{Inode: subInode, owner: task}
-	dentry := &kernfs.Dentry{}
-	dentry.Init(inode)
-
-	return dentry
+	return inode
 }
 
-// Lookup implements kernfs.inodeDynamicLookup.Lookup.
-func (i *subtasksInode) Lookup(ctx context.Context, name string) (*kernfs.Dentry, error) {
+// Lookup implements kernfs.inodeLookup.Lookup.
+func (i *subtasksInode) Lookup(ctx context.Context, name string) (kernfs.Inode, error) {
 	tid, err := strconv.ParseUint(name, 10, 32)
 	if err != nil {
 		return nil, syserror.ENOENT
@@ -82,10 +81,10 @@ func (i *subtasksInode) Lookup(ctx context.Context, name string) (*kernfs.Dentry
 	if subTask.ThreadGroup() != i.task.ThreadGroup() {
 		return nil, syserror.ENOENT
 	}
-	return i.fs.newTaskInode(subTask, i.pidns, false, i.cgroupControllers), nil
+	return i.fs.newTaskInode(subTask, i.pidns, false, i.cgroupControllers)
 }
 
-// IterDirents implements kernfs.inodeDynamicLookup.IterDirents.
+// IterDirents implements kernfs.inodeLookup.IterDirents.
 func (i *subtasksInode) IterDirents(ctx context.Context, cb vfs.IterDirentsCallback, offset, relOffset int64) (int64, error) {
 	tasks := i.task.ThreadGroup().MemberIDs(i.pidns)
 	if len(tasks) == 0 {
@@ -186,6 +185,6 @@ func (*subtasksInode) SetStat(context.Context, *vfs.Filesystem, *auth.Credential
 }
 
 // DecRef implements kernfs.Inode.DecRef.
-func (i *subtasksInode) DecRef(context.Context) {
-	i.subtasksInodeRefs.DecRef(i.Destroy)
+func (i *subtasksInode) DecRef(ctx context.Context) {
+	i.subtasksInodeRefs.DecRef(func() { i.Destroy(ctx) })
 }
