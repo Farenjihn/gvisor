@@ -22,6 +22,7 @@ package stack
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	mathrand "math/rand"
 	"sync/atomic"
 	"time"
@@ -1192,42 +1193,86 @@ func (s *Stack) FindRoute(id tcpip.NICID, localAddr, remoteAddr tcpip.Address, n
 	if id != 0 && !needRoute {
 		if nic, ok := s.nics[id]; ok && nic.Enabled() {
 			if addressEndpoint := s.getAddressEP(nic, localAddr, remoteAddr, netProto); addressEndpoint != nil {
-				return makeRoute(netProto, addressEndpoint.AddressWithPrefix().Address, remoteAddr, nic, addressEndpoint, s.handleLocal && !nic.IsLoopback(), multicastLoop && !nic.IsLoopback()), nil
+				return makeRoute(netProto, addressEndpoint.AddressWithPrefix().Address, remoteAddr, nic, nic, addressEndpoint, s.handleLocal && !nic.IsLoopback(), multicastLoop && !nic.IsLoopback()), nil
 			}
 		}
-	} else {
-		for _, route := range s.routeTable {
-			if (id != 0 && id != route.NIC) || (len(remoteAddr) != 0 && !route.Destination.Contains(remoteAddr)) {
-				continue
-			}
-			if nic, ok := s.nics[route.NIC]; ok && nic.Enabled() {
-				if addressEndpoint := s.getAddressEP(nic, localAddr, remoteAddr, netProto); addressEndpoint != nil {
-					if len(remoteAddr) == 0 {
-						// If no remote address was provided, then the route
-						// provided will refer to the link local address.
-						remoteAddr = addressEndpoint.AddressWithPrefix().Address
-					}
 
-					r := makeRoute(netProto, addressEndpoint.AddressWithPrefix().Address, remoteAddr, nic, addressEndpoint, s.handleLocal && !nic.IsLoopback(), multicastLoop && !nic.IsLoopback())
-					if len(route.Gateway) > 0 {
-						if needRoute {
-							r.NextHop = route.Gateway
-						}
-					} else if subnet := addressEndpoint.AddressWithPrefix().Subnet(); subnet.IsBroadcast(remoteAddr) {
-						r.RemoteLinkAddress = header.EthernetBroadcastAddress
-					}
-
-					return r, nil
-				}
-			}
-		}
-	}
-
-	if !needRoute {
 		return Route{}, tcpip.ErrNetworkUnreachable
 	}
 
-	return Route{}, tcpip.ErrNoRoute
+	constructRoute := func(addressEndpoint AssignableAddressEndpoint, addressNIC, outgoingNIC *NIC, gateway tcpip.Address) Route {
+		if len(remoteAddr) == 0 {
+			// If no remote address was provided, then the route
+			// provided will refer to the link local address.
+			remoteAddr = addressEndpoint.AddressWithPrefix().Address
+		}
+
+		r := makeRoute(netProto, addressEndpoint.AddressWithPrefix().Address, remoteAddr, outgoingNIC, addressNIC, addressEndpoint, s.handleLocal && !outgoingNIC.IsLoopback(), multicastLoop && !outgoingNIC.IsLoopback())
+		if len(gateway) > 0 {
+			if needRoute {
+				r.NextHop = gateway
+			}
+		} else if subnet := addressEndpoint.AddressWithPrefix().Subnet(); subnet.IsBroadcast(remoteAddr) {
+			r.RemoteLinkAddress = header.EthernetBroadcastAddress
+		}
+
+		return r
+	}
+
+	forwarding := s.Forwarding(netProto)
+
+	err := tcpip.ErrNoRoute
+	if !needRoute {
+		err = tcpip.ErrNetworkUnreachable
+	}
+
+	var chosenRoute tcpip.Route
+	for _, route := range s.routeTable {
+		if len(remoteAddr) != 0 && !route.Destination.Contains(remoteAddr) {
+			continue
+		}
+
+		nic, ok := s.nics[route.NIC]
+		if !ok || !nic.Enabled() {
+			continue
+		}
+
+		if id == 0 || id == route.NIC {
+			if addressEndpoint := s.getAddressEP(nic, localAddr, remoteAddr, netProto); addressEndpoint != nil {
+				return constructRoute(addressEndpoint, nic, nic, route.Gateway), nil
+			}
+		}
+
+		if forwarding {
+			chosenRoute = route
+		}
+	}
+
+	if !forwarding || chosenRoute == (tcpip.Route{}) {
+		return Route{}, err
+	}
+
+	nic, ok := s.nics[chosenRoute.NIC]
+	if !ok {
+		panic(fmt.Sprintf("chosen route must have a valid NIC with ID = %d", chosenRoute.NIC))
+	}
+
+	if id == 0 {
+		for _, aNIC := range s.nics {
+			addressEndpoint := s.getAddressEP(aNIC, localAddr, remoteAddr, netProto)
+			if addressEndpoint == nil {
+				continue
+			}
+
+			return constructRoute(addressEndpoint, aNIC, nic, chosenRoute.Gateway), nil
+		}
+	} else if aNIC, ok := s.nics[id]; ok {
+		if addressEndpoint := s.getAddressEP(aNIC, localAddr, remoteAddr, netProto); addressEndpoint != nil {
+			return constructRoute(addressEndpoint, aNIC, nic, chosenRoute.Gateway), nil
+		}
+	}
+
+	return Route{}, err
 }
 
 // CheckNetworkProtocol checks if a given network protocol is enabled in the
@@ -1796,7 +1841,7 @@ func (s *Stack) GetNetworkEndpoint(nicID tcpip.NICID, proto tcpip.NetworkProtoco
 		return nil, tcpip.ErrUnknownNICID
 	}
 
-	return nic.networkEndpoints[proto], nil
+	return nic.getNetworkEndpoint(proto), nil
 }
 
 // NUDConfigurations gets the per-interface NUD configurations.
@@ -1873,10 +1918,8 @@ func (s *Stack) FindNetworkEndpoint(netProto tcpip.NetworkProtocolNumber, addres
 		if addressEndpoint == nil {
 			continue
 		}
-
-		ep := addressEndpoint.NetworkEndpoint()
 		addressEndpoint.DecRef()
-		return ep, nil
+		return nic.getNetworkEndpoint(netProto), nil
 	}
 	return nil, tcpip.ErrBadAddress
 }
