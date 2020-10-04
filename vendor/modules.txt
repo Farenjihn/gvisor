@@ -1,0 +1,201 @@
+# github.com/BurntSushi/toml v0.3.1
+## explicit
+github.com/BurntSushi/toml
+# github.com/Microsoft/go-winio v0.4.15-0.20190919025122-fc70bd9a86b5
+## explicit
+github.com/Microsoft/go-winio
+github.com/Microsoft/go-winio/pkg/guid
+# github.com/Microsoft/hcsshim v0.8.6
+## explicit
+github.com/Microsoft/hcsshim
+github.com/Microsoft/hcsshim/internal/guestrequest
+github.com/Microsoft/hcsshim/internal/guid
+github.com/Microsoft/hcsshim/internal/hcs
+github.com/Microsoft/hcsshim/internal/hcserror
+github.com/Microsoft/hcsshim/internal/hns
+github.com/Microsoft/hcsshim/internal/interop
+github.com/Microsoft/hcsshim/internal/logfields
+github.com/Microsoft/hcsshim/internal/longpath
+github.com/Microsoft/hcsshim/internal/mergemaps
+github.com/Microsoft/hcsshim/internal/safefile
+github.com/Microsoft/hcsshim/internal/schema1
+github.com/Microsoft/hcsshim/internal/schema2
+github.com/Microsoft/hcsshim/internal/timeout
+github.com/Microsoft/hcsshim/internal/wclayer
+# github.com/bazelbuild/rules_go v0.24.3
+## explicit
+github.com/bazelbuild/rules_go/go/tools/coverdata
+# github.com/cenkalti/backoff v1.1.1-0.20190506075156-2146c9339422
+## explicit
+github.com/cenkalti/backoff
+# github.com/containerd/cgroups v0.0.0-20181219155423-39b18af02c41
+## explicit
+github.com/containerd/cgroups
+# github.com/containerd/console v0.0.0-20191206165004-02ecf6a7291e
+## explicit
+github.com/containerd/console
+# github.com/containerd/containerd v1.3.4
+## explicit
+github.com/containerd/containerd/api/events
+github.com/containerd/containerd/api/services/ttrpc/events/v1
+github.com/containerd/containerd/api/types
+github.com/containerd/containerd/api/types/task
+github.com/containerd/containerd/errdefs
+github.com/containerd/containerd/events
+github.com/containerd/containerd/log
+github.com/containerd/containerd/mount
+github.com/containerd/containerd/namespaces
+github.com/containerd/containerd/pkg/process
+github.com/containerd/containerd/pkg/stdio
+github.com/containerd/containerd/pkg/timeout
+github.com/containerd/containerd/pkg/ttrpcutil
+github.com/containerd/containerd/runtime
+github.com/containerd/containerd/runtime/linux/runctypes
+github.com/containerd/containerd/runtime/v1/shim/v1
+github.com/containerd/containerd/runtime/v2/shim
+github.com/containerd/containerd/runtime/v2/task
+github.com/containerd/containerd/sys
+github.com/containerd/containerd/sys/reaper
+# github.com/containerd/continuity v0.0.0-20200710164510-efbc4488d8fe
+## explicit
+# github.com/containerd/fifo v0.0.0-20191213151349-ff969a566b00
+## explicit
+github.com/containerd/fifo
+# github.com/containerd/go-runc v0.0.0-20200220073739-7016d3ce2328
+## explicit
+github.com/containerd/go-runc
+# github.com/containerd/ttrpc v0.0.0-20200121165050-0be804eadb15
+## explicit
+github.com/containerd/ttrpc
+# github.com/containerd/typeurl v0.0.0-20200205145503-b45ef1f1f737
+## explicit
+github.com/containerd/typeurl
+# github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
+## explicit
+github.com/coreos/go-systemd/dbus
+# github.com/docker/go-units v0.4.0
+## explicit
+github.com/docker/go-units
+# github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e
+## explicit
+github.com/godbus/dbus
+# github.com/gofrs/flock v0.6.1-0.20180915234121-886344bea079
+## explicit
+github.com/gofrs/flock
+# github.com/gogo/protobuf v1.3.1
+## explicit
+github.com/gogo/protobuf/gogoproto
+github.com/gogo/protobuf/proto
+github.com/gogo/protobuf/protoc-gen-gogo/descriptor
+github.com/gogo/protobuf/sortkeys
+github.com/gogo/protobuf/types
+# github.com/golang/protobuf v1.4.2
+## explicit
+github.com/golang/protobuf/proto
+github.com/golang/protobuf/ptypes
+github.com/golang/protobuf/ptypes/any
+github.com/golang/protobuf/ptypes/duration
+github.com/golang/protobuf/ptypes/timestamp
+# github.com/google/btree v1.0.0
+## explicit
+github.com/google/btree
+# github.com/google/go-cmp v0.5.0
+## explicit
+# github.com/google/subcommands v1.0.2-0.20190508160503-636abe8753b8
+## explicit
+github.com/google/subcommands
+# github.com/hashicorp/errwrap v1.0.0
+github.com/hashicorp/errwrap
+# github.com/hashicorp/go-multierror v1.0.0
+## explicit
+github.com/hashicorp/go-multierror
+# github.com/konsorten/go-windows-terminal-sequences v1.0.2
+github.com/konsorten/go-windows-terminal-sequences
+# github.com/kr/pretty v0.1.0
+## explicit
+# github.com/kr/pty v1.1.4-0.20190131011033-7dc38fb350b1
+## explicit
+github.com/kr/pty
+# github.com/mohae/deepcopy v0.0.0-20170308212314-bb9b5e7adda9
+## explicit
+github.com/mohae/deepcopy
+# github.com/opencontainers/go-digest v1.0.0
+## explicit
+github.com/opencontainers/go-digest
+# github.com/opencontainers/runc v0.1.1
+## explicit
+github.com/opencontainers/runc/libcontainer/system
+# github.com/opencontainers/runtime-spec v1.0.2-0.20181111125026-1722abf79c2f
+## explicit
+github.com/opencontainers/runtime-spec/specs-go
+# github.com/pkg/errors v0.9.1
+github.com/pkg/errors
+# github.com/sirupsen/logrus v1.4.2
+github.com/sirupsen/logrus
+# github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
+## explicit
+github.com/syndtr/gocapability/capability
+# github.com/vishvananda/netlink v1.0.1-0.20190930145447-2ec5bdc52b86
+## explicit
+github.com/vishvananda/netlink
+github.com/vishvananda/netlink/nl
+# github.com/vishvananda/netns v0.0.0-20200520041808-52d707b772fe
+## explicit
+github.com/vishvananda/netns
+# golang.org/x/net v0.0.0-20200625001655-4c5254603344
+## explicit
+# golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
+## explicit
+golang.org/x/sys/unix
+golang.org/x/sys/windows
+# golang.org/x/text v0.3.2
+## explicit
+# golang.org/x/time v0.0.0-20191024005414-555d28b269f0
+## explicit
+golang.org/x/time/rate
+# google.golang.org/genproto v0.0.0-20200117163144-32f20d992d24
+google.golang.org/genproto/googleapis/rpc/status
+# google.golang.org/grpc v1.29.0
+## explicit
+google.golang.org/grpc/codes
+google.golang.org/grpc/internal/status
+google.golang.org/grpc/metadata
+google.golang.org/grpc/status
+# google.golang.org/protobuf v1.23.0
+google.golang.org/protobuf/encoding/prototext
+google.golang.org/protobuf/encoding/protowire
+google.golang.org/protobuf/internal/descfmt
+google.golang.org/protobuf/internal/descopts
+google.golang.org/protobuf/internal/detrand
+google.golang.org/protobuf/internal/encoding/defval
+google.golang.org/protobuf/internal/encoding/messageset
+google.golang.org/protobuf/internal/encoding/tag
+google.golang.org/protobuf/internal/encoding/text
+google.golang.org/protobuf/internal/errors
+google.golang.org/protobuf/internal/fieldnum
+google.golang.org/protobuf/internal/fieldsort
+google.golang.org/protobuf/internal/filedesc
+google.golang.org/protobuf/internal/filetype
+google.golang.org/protobuf/internal/flags
+google.golang.org/protobuf/internal/genname
+google.golang.org/protobuf/internal/impl
+google.golang.org/protobuf/internal/mapsort
+google.golang.org/protobuf/internal/pragma
+google.golang.org/protobuf/internal/set
+google.golang.org/protobuf/internal/strs
+google.golang.org/protobuf/internal/version
+google.golang.org/protobuf/proto
+google.golang.org/protobuf/reflect/protoreflect
+google.golang.org/protobuf/reflect/protoregistry
+google.golang.org/protobuf/runtime/protoiface
+google.golang.org/protobuf/runtime/protoimpl
+google.golang.org/protobuf/types/known/anypb
+google.golang.org/protobuf/types/known/durationpb
+google.golang.org/protobuf/types/known/timestamppb
+# gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
+## explicit
+# gopkg.in/yaml.v2 v2.2.8
+## explicit
+# gotest.tools v2.2.0+incompatible
+## explicit
+# github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.6.0
